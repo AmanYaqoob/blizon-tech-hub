@@ -1,15 +1,24 @@
 
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 
 interface SearchBarProps {
   onSearch: (term: string) => void;
   placeholder?: string;
+  className?: string;
+  inputClassName?: string;
+  iconClassName?: string;
+  autoFocus?: boolean;
 }
 
 export const SearchBar = ({ 
   onSearch, 
-  placeholder = "Search for clients, projects, team members..." 
+  placeholder = "Search for clients, projects, team members...", 
+  className = "relative w-full",
+  inputClassName = "w-full pl-10 py-2",
+  iconClassName = "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400",
+  autoFocus = false
 }: SearchBarProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -18,30 +27,25 @@ export const SearchBar = ({
     onSearch(searchTerm);
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    if (value === '') {
+      onSearch(''); // Clear search results when input is empty
+    }
+  };
+
   return (
-    <form onSubmit={handleSearch} className="relative w-full">
+    <form onSubmit={handleSearch} className={className}>
       <div className="relative">
-        <svg
-          className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
+        <Search className={iconClassName} />
         <Input
           type="search"
           placeholder={placeholder}
-          className="w-full pl-10 py-2"
+          className={inputClassName}
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={handleChange}
+          autoFocus={autoFocus}
         />
       </div>
     </form>
