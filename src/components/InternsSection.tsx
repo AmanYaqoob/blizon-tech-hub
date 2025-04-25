@@ -36,8 +36,10 @@ interface InternsSectionProps {
 
 export const InternsSection = ({ interns, onAddIntern }: InternsSectionProps) => {
   const [open, setOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<InternStatus>('Onboard');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedIntern, setSelectedIntern] = useState<Intern | null>(null);
   
   const [newIntern, setNewIntern] = useState<Partial<Intern>>({
     name: '',
@@ -67,12 +69,25 @@ export const InternsSection = ({ interns, onAddIntern }: InternsSectionProps) =>
     setNewIntern(prev => ({ ...prev, [name]: value }));
   };
   
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSelectedIntern(prev => prev ? ({ ...prev, [name]: value }) : null);
+  };
+  
   const handleSelectChange = (name: keyof Intern, value: any) => {
     setNewIntern(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleEditSelectChange = (name: keyof Intern, value: any) => {
+    setSelectedIntern(prev => prev ? ({ ...prev, [name]: value }) : null);
   };
 
   const handleDateChange = (name: string, value: string) => {
     setNewIntern(prev => ({ ...prev, [name]: new Date(value) }));
+  };
+  
+  const handleEditDateChange = (name: string, value: string) => {
+    setSelectedIntern(prev => prev ? ({ ...prev, [name]: new Date(value) }) : null);
   };
 
   const handleAddIntern = (e: React.FormEvent) => {
@@ -104,6 +119,54 @@ export const InternsSection = ({ interns, onAddIntern }: InternsSectionProps) =>
       endDate: new Date(),
     });
     setOpen(false);
+  };
+  
+  const handleEditIntern = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedIntern) return;
+    
+    // Find intern index and update it
+    const internIndex = interns.findIndex(i => i.id === selectedIntern.id);
+    if (internIndex !== -1) {
+      const updatedInterns = [...interns];
+      updatedInterns[internIndex] = selectedIntern;
+      
+      // This would typically call an update function passed as prop
+      // For now, we'll just show a toast
+      toast({
+        title: 'Intern updated successfully',
+        description: `${selectedIntern.name}'s information has been updated.`,
+      });
+    }
+    
+    // Close the dialog
+    setEditOpen(false);
+    setSelectedIntern(null);
+  };
+  
+  const handleEdit = (intern: Intern) => {
+    setSelectedIntern(intern);
+    setEditOpen(true);
+  };
+  
+  const handleStatusChange = (intern: Intern, newStatus: InternStatus) => {
+    // Find intern index and update its status
+    const internIndex = interns.findIndex(i => i.id === intern.id);
+    if (internIndex !== -1) {
+      const updatedInterns = [...interns];
+      updatedInterns[internIndex] = {
+        ...intern,
+        status: newStatus
+      };
+      
+      // This would typically call an update function passed as prop
+      // For now, we'll just show a toast
+      toast({
+        title: `Intern ${newStatus === 'Onboard' ? 'onboarded' : 'postponed'} successfully`,
+        description: `${intern.name}'s status has been changed to ${newStatus}.`,
+      });
+    }
   };
   
   const getStatusColor = (status: InternStatus) => {
@@ -254,6 +317,133 @@ export const InternsSection = ({ interns, onAddIntern }: InternsSectionProps) =>
             </form>
           </DialogContent>
         </Dialog>
+        
+        {/* Edit Intern Dialog */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Intern</DialogTitle>
+              <DialogDescription>
+                Update the intern's information below.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedIntern && (
+              <form onSubmit={handleEditIntern}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-2">
+                    <Label htmlFor="edit-name" className="text-right">Name</Label>
+                    <Input
+                      id="edit-name"
+                      name="name" 
+                      value={selectedIntern.name}
+                      onChange={handleEditInputChange}
+                      className="col-span-3"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-2">
+                    <Label htmlFor="edit-email" className="text-right">Email</Label>
+                    <Input
+                      id="edit-email"
+                      name="email"
+                      type="email"
+                      value={selectedIntern.email}
+                      onChange={handleEditInputChange}
+                      className="col-span-3"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-2">
+                    <Label htmlFor="edit-phone" className="text-right">Phone</Label>
+                    <Input
+                      id="edit-phone"
+                      name="phone"
+                      value={selectedIntern.phone}
+                      onChange={handleEditInputChange}
+                      className="col-span-3"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-2">
+                    <Label htmlFor="edit-university" className="text-right">University</Label>
+                    <Input
+                      id="edit-university"
+                      name="university"
+                      value={selectedIntern.university}
+                      onChange={handleEditInputChange}
+                      className="col-span-3"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-2">
+                    <Label htmlFor="edit-department" className="text-right">Department</Label>
+                    <div className="col-span-3">
+                      <Select
+                        value={selectedIntern.department}
+                        onValueChange={(value) => handleEditSelectChange('department', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departments.map(department => (
+                            <SelectItem key={department} value={department}>
+                              {department}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-2">
+                    <Label htmlFor="edit-status" className="text-right">Status</Label>
+                    <div className="col-span-3">
+                      <Select
+                        value={selectedIntern.status}
+                        onValueChange={(value: InternStatus) => handleEditSelectChange('status', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Onboard">Onboard</SelectItem>
+                          <SelectItem value="Postponed">Postponed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-2">
+                    <Label htmlFor="edit-startDate" className="text-right">Start Date</Label>
+                    <Input
+                      id="edit-startDate"
+                      name="startDate"
+                      type="date"
+                      value={selectedIntern.startDate ? new Date(selectedIntern.startDate).toISOString().split('T')[0] : ''}
+                      onChange={(e) => handleEditDateChange('startDate', e.target.value)}
+                      className="col-span-3"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-2">
+                    <Label htmlFor="edit-endDate" className="text-right">End Date</Label>
+                    <Input
+                      id="edit-endDate"
+                      name="endDate"
+                      type="date"
+                      value={selectedIntern.endDate ? new Date(selectedIntern.endDate).toISOString().split('T')[0] : ''}
+                      onChange={(e) => handleEditDateChange('endDate', e.target.value)}
+                      className="col-span-3"
+                      required
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Save Changes</Button>
+                </DialogFooter>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
       
       <Tabs defaultValue="Onboard" onValueChange={(value) => setActiveTab(value as InternStatus)}>
@@ -306,18 +496,18 @@ export const InternsSection = ({ interns, onAddIntern }: InternsSectionProps) =>
                 </div>
                 
                 <div className="mt-4 pt-4 border-t flex justify-between items-center text-sm">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" onClick={() => handleEdit(intern)}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                     <span className="ml-1">Edit</span>
                   </Button>
                   {intern.status === 'Onboard' && (
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => handleStatusChange(intern, 'Postponed')}>
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
                       <span className="ml-1">Postpone</span>
                     </Button>
                   )}
                   {intern.status === 'Postponed' && (
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => handleStatusChange(intern, 'Onboard')}>
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
                       <span className="ml-1">Onboard</span>
                     </Button>
@@ -367,18 +557,18 @@ export const InternsSection = ({ interns, onAddIntern }: InternsSectionProps) =>
                 </div>
                 
                 <div className="mt-4 pt-4 border-t flex justify-between items-center text-sm">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" onClick={() => handleEdit(intern)}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                     <span className="ml-1">Edit</span>
                   </Button>
                   {intern.status === 'Onboard' && (
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => handleStatusChange(intern, 'Postponed')}>
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
                       <span className="ml-1">Postpone</span>
                     </Button>
                   )}
                   {intern.status === 'Postponed' && (
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" onClick={() => handleStatusChange(intern, 'Onboard')}>
                       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
                       <span className="ml-1">Onboard</span>
                     </Button>
