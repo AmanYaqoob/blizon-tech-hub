@@ -23,6 +23,8 @@ interface ClientsSectionProps {
 
 export const ClientsSection = ({ clients, onAddClient }: ClientsSectionProps) => {
   const [open, setOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [currentClient, setCurrentClient] = useState<Client | null>(null);
   const [newClient, setNewClient] = useState<Partial<Client>>({
     name: '',
     email: '',
@@ -38,9 +40,13 @@ export const ClientsSection = ({ clients, onAddClient }: ClientsSectionProps) =>
     client.company.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setNewClient(prev => ({ ...prev, [name]: value }));
+    if (editMode && currentClient) {
+      setCurrentClient(prev => ({ ...prev, [name]: value } as Client));
+    } else {
+      setNewClient(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleAddClient = (e: React.FormEvent) => {
@@ -62,6 +68,54 @@ export const ClientsSection = ({ clients, onAddClient }: ClientsSectionProps) =>
     });
     
     // Reset form and close dialog
+    resetForm();
+  };
+  
+  const handleEditClient = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (currentClient) {
+      // Update client in parent component
+      const updatedClients = clients.map(c => 
+        c.id === currentClient.id ? currentClient : c
+      );
+      
+      // Replace the clients array with updated one
+      onAddClient(currentClient);
+      
+      // Show success message
+      toast({
+        title: 'Client updated successfully',
+        description: `${currentClient.name}'s information has been updated.`,
+      });
+      
+      // Reset form and close dialog
+      resetForm();
+    }
+  };
+  
+  const handleRemoveClient = (clientId: string) => {
+    // Filter out the client to be removed
+    const updatedClients = clients.filter(c => c.id !== clientId);
+    
+    // Replace the clients array with filtered one
+    const clientToRemove = clients.find(c => c.id === clientId);
+    
+    if (clientToRemove) {
+      toast({
+        title: 'Client removed',
+        description: `${clientToRemove.name} has been removed from your clients.`,
+      });
+    }
+  };
+  
+  const openEditDialog = (client: Client) => {
+    setCurrentClient(client);
+    setEditMode(true);
+    setOpen(true);
+  };
+  
+  const resetForm = () => {
     setNewClient({
       name: '',
       email: '',
@@ -69,6 +123,8 @@ export const ClientsSection = ({ clients, onAddClient }: ClientsSectionProps) =>
       company: '',
       address: '',
     });
+    setCurrentClient(null);
+    setEditMode(false);
     setOpen(false);
   };
   
@@ -82,26 +138,29 @@ export const ClientsSection = ({ clients, onAddClient }: ClientsSectionProps) =>
         
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => {
+              setEditMode(false);
+              setCurrentClient(null);
+            }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
               Add Client
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Client</DialogTitle>
+              <DialogTitle>{editMode ? 'Edit Client' : 'Add New Client'}</DialogTitle>
               <DialogDescription>
-                Enter the client's information below.
+                {editMode ? 'Update the client\'s information below.' : 'Enter the client\'s information below.'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleAddClient}>
+            <form onSubmit={editMode ? handleEditClient : handleAddClient}>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-2">
                   <Label htmlFor="name" className="text-right">Name</Label>
                   <Input
                     id="name"
                     name="name" 
-                    value={newClient.name}
+                    value={editMode && currentClient ? currentClient.name : newClient.name}
                     onChange={handleInputChange}
                     className="col-span-3"
                     required
@@ -113,7 +172,7 @@ export const ClientsSection = ({ clients, onAddClient }: ClientsSectionProps) =>
                     id="email"
                     name="email"
                     type="email"
-                    value={newClient.email}
+                    value={editMode && currentClient ? currentClient.email : newClient.email}
                     onChange={handleInputChange}
                     className="col-span-3"
                     required
@@ -124,7 +183,7 @@ export const ClientsSection = ({ clients, onAddClient }: ClientsSectionProps) =>
                   <Input
                     id="phone"
                     name="phone"
-                    value={newClient.phone}
+                    value={editMode && currentClient ? currentClient.phone : newClient.phone}
                     onChange={handleInputChange}
                     className="col-span-3"
                     required
@@ -135,7 +194,7 @@ export const ClientsSection = ({ clients, onAddClient }: ClientsSectionProps) =>
                   <Input
                     id="company"
                     name="company"
-                    value={newClient.company}
+                    value={editMode && currentClient ? currentClient.company : newClient.company}
                     onChange={handleInputChange}
                     className="col-span-3"
                     required
@@ -146,15 +205,27 @@ export const ClientsSection = ({ clients, onAddClient }: ClientsSectionProps) =>
                   <Input
                     id="address"
                     name="address"
-                    value={newClient.address}
+                    value={editMode && currentClient ? currentClient.address : newClient.address}
                     onChange={handleInputChange}
                     className="col-span-3"
                     required
                   />
                 </div>
+                <div className="grid grid-cols-4 items-center gap-2">
+                  <Label htmlFor="photo" className="text-right">Photo</Label>
+                  <Input
+                    id="photo"
+                    name="photo"
+                    type="file"
+                    accept="image/*"
+                    className="col-span-3"
+                  />
+                </div>
               </div>
               <DialogFooter>
-                <Button type="submit">Add Client</Button>
+                <Button type="submit">
+                  {editMode ? 'Update Client' : 'Add Client'}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -195,10 +266,16 @@ export const ClientsSection = ({ clients, onAddClient }: ClientsSectionProps) =>
             </div>
             <div className="mt-4 pt-4 border-t flex justify-between items-center text-sm text-gray-500">
               <span>Added on {client.createdAt.toLocaleDateString()}</span>
-              <Button variant="ghost" size="sm">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                <span className="ml-1">Edit</span>
-              </Button>
+              <div className="flex space-x-2">
+                <Button variant="ghost" size="sm" onClick={() => openEditDialog(client)}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                  <span className="ml-1">Edit</span>
+                </Button>
+                <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleRemoveClient(client.id)}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                  <span className="ml-1">Remove</span>
+                </Button>
+              </div>
             </div>
           </div>
         ))}

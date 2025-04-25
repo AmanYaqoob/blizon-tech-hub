@@ -7,6 +7,7 @@ export type Client = {
   company: string;
   address: string;
   createdAt: Date;
+  photo?: string | File;
 };
 
 export type ProjectStatus = 'Active' | 'Working' | 'Closed';
@@ -20,6 +21,7 @@ export type Project = {
   startDate: Date;
   endDate: Date;
   teamMemberIds: string[];
+  documents?: Array<string | File>;
 };
 
 export type TeamMember = {
@@ -31,6 +33,7 @@ export type TeamMember = {
   department: string;
   joinedDate: Date;
   avatar?: string;
+  resume?: string | File;
 };
 
 export type InternStatus = 'Onboard' | 'Postponed';
@@ -45,6 +48,8 @@ export type Intern = {
   status: InternStatus;
   startDate: Date;
   endDate: Date;
+  resume?: string | File;
+  photo?: string | File;
 };
 
 export type ContractMilestone = {
@@ -54,6 +59,7 @@ export type ContractMilestone = {
   dueDate: Date;
   amount: number;
   isCompleted: boolean;
+  attachments?: Array<string | File>;
 };
 
 export type Contract = {
@@ -66,6 +72,7 @@ export type Contract = {
   endDate: Date;
   totalValue: number;
   milestones: ContractMilestone[];
+  documents?: Array<string | File>;
 };
 
 export type User = {
@@ -74,4 +81,5 @@ export type User = {
   password: string;
   name: string;
   role: string;
+  avatar?: string;
 };

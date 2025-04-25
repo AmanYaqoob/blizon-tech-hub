@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 
@@ -10,6 +10,7 @@ interface SearchBarProps {
   inputClassName?: string;
   iconClassName?: string;
   autoFocus?: boolean;
+  debounceMs?: number;
 }
 
 export const SearchBar = ({ 
@@ -18,9 +19,19 @@ export const SearchBar = ({
   className = "relative w-full",
   inputClassName = "w-full pl-10 py-2",
   iconClassName = "absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400",
-  autoFocus = false
+  autoFocus = false,
+  debounceMs = 300
 }: SearchBarProps) => {
   const [searchTerm, setSearchTerm] = useState('');
+  
+  useEffect(() => {
+    // Debounce search to improve performance
+    const handler = setTimeout(() => {
+      onSearch(searchTerm);
+    }, debounceMs);
+    
+    return () => clearTimeout(handler);
+  }, [searchTerm, onSearch, debounceMs]);
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,9 +41,6 @@ export const SearchBar = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
-    if (value === '') {
-      onSearch(''); // Clear search results when input is empty
-    }
   };
 
   return (

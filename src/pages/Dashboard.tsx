@@ -13,6 +13,7 @@ import TeamSection from '@/components/TeamSection';
 import InternsSection from '@/components/InternsSection';
 import CalendarView from '@/components/CalendarView';
 import ContractsSection from '@/components/ContractsSection';
+import { SearchBar } from '@/components/SearchBar';
 
 // Data and types
 import { 
@@ -51,6 +52,8 @@ const Dashboard = () => {
     contracts: [],
   });
   
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -82,9 +85,11 @@ const Dashboard = () => {
         interns: [],
         contracts: [],
       });
+      setShowSearchResults(false);
       return;
     }
     
+    setShowSearchResults(true);
     const lowerTerm = term.toLowerCase();
     
     // Search clients
@@ -128,45 +133,213 @@ const Dashboard = () => {
       contracts: filteredContracts,
     });
     
-    // If we have search results, auto-switch to appropriate tab
-    if (filteredClients.length > 0) {
+    // Auto-switch tab only if the current tab has no results
+    if (filteredClients.length > 0 && tab !== 'clients') {
       setActiveTab('clients');
-    } else if (filteredProjects.length > 0) {
+    } else if (filteredProjects.length > 0 && tab !== 'projects') {
       setActiveTab('projects');
-    } else if (filteredTeamMembers.length > 0) {
+    } else if (filteredTeamMembers.length > 0 && tab !== 'team') {
       setActiveTab('team');
-    } else if (filteredInterns.length > 0) {
+    } else if (filteredInterns.length > 0 && tab !== 'interns') {
       setActiveTab('interns');
-    } else if (filteredContracts.length > 0) {
+    } else if (filteredContracts.length > 0 && tab !== 'contracts') {
       setActiveTab('contracts');
     }
   };
   
+  // Functions to update the data
   const handleAddClient = (client: Client) => {
-    setClients(prev => [client, ...prev]);
+    setClients(prev => {
+      // Check if client already exists (update case)
+      const index = prev.findIndex(c => c.id === client.id);
+      if (index !== -1) {
+        // Update existing client
+        const updatedClients = [...prev];
+        updatedClients[index] = client;
+        return updatedClients;
+      } else {
+        // Add new client
+        return [client, ...prev];
+      }
+    });
+  };
+  
+  const handleRemoveClient = (clientId: string) => {
+    setClients(prev => prev.filter(client => client.id !== clientId));
+    toast({
+      title: 'Client removed',
+      description: 'The client has been removed from your list',
+    });
   };
   
   const handleAddProject = (project: Project) => {
-    setProjects(prev => [project, ...prev]);
+    setProjects(prev => {
+      // Check if project already exists (update case)
+      const index = prev.findIndex(p => p.id === project.id);
+      if (index !== -1) {
+        // Update existing project
+        const updatedProjects = [...prev];
+        updatedProjects[index] = project;
+        return updatedProjects;
+      } else {
+        // Add new project
+        return [project, ...prev];
+      }
+    });
+  };
+  
+  const handleRemoveProject = (projectId: string) => {
+    setProjects(prev => prev.filter(project => project.id !== projectId));
+    toast({
+      title: 'Project removed',
+      description: 'The project has been removed from your list',
+    });
   };
   
   const handleAddTeamMember = (teamMember: TeamMember) => {
-    setTeamMembers(prev => [teamMember, ...prev]);
+    setTeamMembers(prev => {
+      // Check if team member already exists (update case)
+      const index = prev.findIndex(t => t.id === teamMember.id);
+      if (index !== -1) {
+        // Update existing team member
+        const updatedTeam = [...prev];
+        updatedTeam[index] = teamMember;
+        return updatedTeam;
+      } else {
+        // Add new team member
+        return [teamMember, ...prev];
+      }
+    });
   };
   
   const handleAddIntern = (intern: Intern) => {
-    setInterns(prev => [intern, ...prev]);
+    setInterns(prev => {
+      // Check if intern already exists (update case)
+      const index = prev.findIndex(i => i.id === intern.id);
+      if (index !== -1) {
+        // Update existing intern
+        const updatedInterns = [...prev];
+        updatedInterns[index] = intern;
+        return updatedInterns;
+      } else {
+        // Add new intern
+        return [intern, ...prev];
+      }
+    });
   };
   
   const handleAddContract = (contract: Contract) => {
-    setContracts(prev => [contract, ...prev]);
+    setContracts(prev => {
+      // Check if contract already exists (update case)
+      const index = prev.findIndex(c => c.id === contract.id);
+      if (index !== -1) {
+        // Update existing contract
+        const updatedContracts = [...prev];
+        updatedContracts[index] = contract;
+        return updatedContracts;
+      } else {
+        // Add new contract
+        return [contract, ...prev];
+      }
+    });
+  };
+  
+  // Render search results component
+  const renderSearchResults = () => {
+    if (!showSearchResults || !searchTerm) return null;
+    
+    const hasResults = 
+      searchResults.clients.length > 0 || 
+      searchResults.projects.length > 0 || 
+      searchResults.teamMembers.length > 0 || 
+      searchResults.interns.length > 0 || 
+      searchResults.contracts.length > 0;
+    
+    if (!hasResults) {
+      return (
+        <div className="mb-6 p-6 bg-white rounded-lg shadow-sm">
+          <p className="text-center text-gray-500">No results found for "{searchTerm}"</p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="mb-6 bg-white rounded-lg shadow-sm p-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium">Search Results for "{searchTerm}"</h3>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => {
+              setSearchTerm('');
+              setShowSearchResults(false);
+            }}
+          >
+            Clear Search
+          </Button>
+        </div>
+        
+        <div className="space-y-4">
+          {searchResults.clients.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-2">Clients</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {searchResults.clients.slice(0, 4).map(client => (
+                  <div key={client.id} className="p-3 border rounded-md hover:bg-gray-50">
+                    <div className="font-medium">{client.name}</div>
+                    <div className="text-sm text-gray-500">{client.company}</div>
+                  </div>
+                ))}
+              </div>
+              {searchResults.clients.length > 4 && (
+                <button 
+                  className="text-sm text-primary mt-1"
+                  onClick={() => setActiveTab('clients')}
+                >
+                  View all {searchResults.clients.length} clients
+                </button>
+              )}
+            </div>
+          )}
+          
+          {/* Similar sections for projects, team members, interns, and contracts */}
+          {/* Projects */}
+          {searchResults.projects.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-2">Projects</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {searchResults.projects.slice(0, 4).map(project => (
+                  <div key={project.id} className="p-3 border rounded-md hover:bg-gray-50">
+                    <div className="font-medium">{project.name}</div>
+                    <div className="text-sm text-gray-500">{project.description.slice(0, 50)}...</div>
+                  </div>
+                ))}
+              </div>
+              {searchResults.projects.length > 4 && (
+                <button 
+                  className="text-sm text-primary mt-1"
+                  onClick={() => setActiveTab('projects')}
+                >
+                  View all {searchResults.projects.length} projects
+                </button>
+              )}
+            </div>
+          )}
+          
+          {/* Add similar blocks for team, interns, and contracts */}
+        </div>
+      </div>
+    );
   };
   
   const renderTabContent = () => {
+    // If we're showing search results, render the component
+    
     switch (tab) {
       case 'overview':
         return (
           <div className="space-y-6">
+            {renderSearchResults()}
             <DashboardStats />
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -261,54 +434,74 @@ const Dashboard = () => {
         
       case 'clients':
         return (
-          <ClientsSection 
-            clients={searchTerm ? searchResults.clients : clients} 
-            onAddClient={handleAddClient} 
-          />
+          <>
+            {renderSearchResults()}
+            <ClientsSection 
+              clients={searchTerm && showSearchResults ? searchResults.clients : clients} 
+              onAddClient={handleAddClient}
+              onRemoveClient={handleRemoveClient}
+            />
+          </>
         );
         
       case 'projects':
         return (
-          <ProjectsSection 
-            projects={searchTerm ? searchResults.projects : projects}
-            clients={clients}
-            teamMembers={teamMembers}
-            onAddProject={handleAddProject}
-          />
+          <>
+            {renderSearchResults()}
+            <ProjectsSection 
+              projects={searchTerm && showSearchResults ? searchResults.projects : projects}
+              clients={clients}
+              teamMembers={teamMembers}
+              onAddProject={handleAddProject}
+              onRemoveProject={handleRemoveProject}
+            />
+          </>
         );
         
       case 'team':
         return (
-          <TeamSection 
-            teamMembers={searchTerm ? searchResults.teamMembers : teamMembers}
-            onAddTeamMember={handleAddTeamMember}
-          />
+          <>
+            {renderSearchResults()}
+            <TeamSection 
+              teamMembers={searchTerm && showSearchResults ? searchResults.teamMembers : teamMembers}
+              onAddTeamMember={handleAddTeamMember}
+            />
+          </>
         );
         
       case 'interns':
         return (
-          <InternsSection 
-            interns={searchTerm ? searchResults.interns : interns}
-            onAddIntern={handleAddIntern}
-          />
+          <>
+            {renderSearchResults()}
+            <InternsSection 
+              interns={searchTerm && showSearchResults ? searchResults.interns : interns}
+              onAddIntern={handleAddIntern}
+            />
+          </>
         );
         
       case 'calendar':
         return (
-          <CalendarView 
-            projects={projects}
-            contracts={contracts}
-          />
+          <>
+            {renderSearchResults()}
+            <CalendarView 
+              projects={projects}
+              contracts={contracts}
+            />
+          </>
         );
         
       case 'contracts':
         return (
-          <ContractsSection 
-            contracts={searchTerm ? searchResults.contracts : contracts}
-            clients={clients}
-            projects={projects}
-            onAddContract={handleAddContract}
-          />
+          <>
+            {renderSearchResults()}
+            <ContractsSection 
+              contracts={searchTerm && showSearchResults ? searchResults.contracts : contracts}
+              clients={clients}
+              projects={projects}
+              onAddContract={handleAddContract}
+            />
+          </>
         );
         
       default:
