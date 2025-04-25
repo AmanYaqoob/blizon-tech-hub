@@ -26,10 +26,17 @@ import { generateId } from '@/lib/data';
 interface TeamSectionProps {
   teamMembers: TeamMember[];
   onAddTeamMember: (teamMember: TeamMember) => void;
+  onRemoveTeamMember: (teamMemberId: string) => void;
 }
 
-export const TeamSection = ({ teamMembers, onAddTeamMember }: TeamSectionProps) => {
+export const TeamSection = ({ 
+  teamMembers, 
+  onAddTeamMember, 
+  onRemoveTeamMember 
+}: TeamSectionProps) => {
   const [open, setOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [currentMember, setCurrentMember] = useState<TeamMember | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
   const [newTeamMember, setNewTeamMember] = useState<Partial<TeamMember>>({
@@ -53,36 +60,68 @@ export const TeamSection = ({ teamMembers, onAddTeamMember }: TeamSectionProps) 
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setNewTeamMember(prev => ({ ...prev, [name]: value }));
+    if (editMode && currentMember) {
+      setCurrentMember(prev => ({ ...prev, [name]: value } as TeamMember));
+    } else {
+      setNewTeamMember(prev => ({ ...prev, [name]: value }));
+    }
   };
   
   const handleSelectChange = (name: string, value: string) => {
-    setNewTeamMember(prev => ({ ...prev, [name]: value }));
+    if (editMode && currentMember) {
+      setCurrentMember(prev => ({ ...prev, [name]: value } as TeamMember));
+    } else {
+      setNewTeamMember(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleDateChange = (name: string, value: string) => {
-    setNewTeamMember(prev => ({ ...prev, [name]: new Date(value) }));
+    if (editMode && currentMember) {
+      setCurrentMember(prev => ({ ...prev, [name]: new Date(value) } as TeamMember));
+    } else {
+      setNewTeamMember(prev => ({ ...prev, [name]: new Date(value) }));
+    }
   };
 
   const handleAddTeamMember = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Create new team member
-    const teamMember = {
-      ...newTeamMember,
-      id: generateId('team'),
-      joinedDate: newTeamMember.joinedDate || new Date()
-    } as TeamMember;
-    
-    onAddTeamMember(teamMember);
-    
-    // Show success message
-    toast({
-      title: 'Team member added successfully',
-      description: `${teamMember.name} has been added to your team.`,
-    });
+    if (editMode && currentMember) {
+      // Update team member
+      onAddTeamMember(currentMember);
+      
+      toast({
+        title: 'Team member updated',
+        description: `${currentMember.name}'s information has been updated.`,
+      });
+    } else {
+      // Create new team member
+      const teamMember = {
+        ...newTeamMember,
+        id: generateId('team'),
+        joinedDate: newTeamMember.joinedDate || new Date()
+      } as TeamMember;
+      
+      onAddTeamMember(teamMember);
+      
+      // Show success message
+      toast({
+        title: 'Team member added successfully',
+        description: `${teamMember.name} has been added to your team.`,
+      });
+    }
     
     // Reset form and close dialog
+    resetForm();
+  };
+  
+  const openEditDialog = (member: TeamMember) => {
+    setCurrentMember(member);
+    setEditMode(true);
+    setOpen(true);
+  };
+  
+  const resetForm = () => {
     setNewTeamMember({
       name: '',
       email: '',
@@ -91,6 +130,8 @@ export const TeamSection = ({ teamMembers, onAddTeamMember }: TeamSectionProps) 
       department: '',
       joinedDate: new Date(),
     });
+    setCurrentMember(null);
+    setEditMode(false);
     setOpen(false);
   };
   
@@ -113,16 +154,19 @@ export const TeamSection = ({ teamMembers, onAddTeamMember }: TeamSectionProps) 
         
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => {
+              setEditMode(false);
+              setCurrentMember(null);
+            }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
               Add Member
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Team Member</DialogTitle>
+              <DialogTitle>{editMode ? 'Edit Team Member' : 'Add New Team Member'}</DialogTitle>
               <DialogDescription>
-                Enter the team member's information below.
+                {editMode ? 'Update the team member\'s information below.' : 'Enter the team member\'s information below.'}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAddTeamMember}>
@@ -132,7 +176,7 @@ export const TeamSection = ({ teamMembers, onAddTeamMember }: TeamSectionProps) 
                   <Input
                     id="name"
                     name="name" 
-                    value={newTeamMember.name}
+                    value={editMode && currentMember ? currentMember.name : newTeamMember.name}
                     onChange={handleInputChange}
                     className="col-span-3"
                     required
@@ -144,7 +188,7 @@ export const TeamSection = ({ teamMembers, onAddTeamMember }: TeamSectionProps) 
                     id="email"
                     name="email"
                     type="email"
-                    value={newTeamMember.email}
+                    value={editMode && currentMember ? currentMember.email : newTeamMember.email}
                     onChange={handleInputChange}
                     className="col-span-3"
                     required
@@ -155,7 +199,7 @@ export const TeamSection = ({ teamMembers, onAddTeamMember }: TeamSectionProps) 
                   <Input
                     id="phone"
                     name="phone"
-                    value={newTeamMember.phone}
+                    value={editMode && currentMember ? currentMember.phone : newTeamMember.phone}
                     onChange={handleInputChange}
                     className="col-span-3"
                     required
@@ -166,7 +210,7 @@ export const TeamSection = ({ teamMembers, onAddTeamMember }: TeamSectionProps) 
                   <Input
                     id="position"
                     name="position"
-                    value={newTeamMember.position}
+                    value={editMode && currentMember ? currentMember.position : newTeamMember.position}
                     onChange={handleInputChange}
                     className="col-span-3"
                     required
@@ -176,7 +220,7 @@ export const TeamSection = ({ teamMembers, onAddTeamMember }: TeamSectionProps) 
                   <Label htmlFor="department" className="text-right">Department</Label>
                   <div className="col-span-3">
                     <Select
-                      value={newTeamMember.department}
+                      value={editMode && currentMember ? currentMember.department : newTeamMember.department}
                       onValueChange={(value) => handleSelectChange('department', value)}
                     >
                       <SelectTrigger>
@@ -198,15 +242,37 @@ export const TeamSection = ({ teamMembers, onAddTeamMember }: TeamSectionProps) 
                     id="joinedDate"
                     name="joinedDate"
                     type="date"
-                    value={newTeamMember.joinedDate ? new Date(newTeamMember.joinedDate).toISOString().split('T')[0] : ''}
+                    value={editMode && currentMember ? new Date(currentMember.joinedDate).toISOString().split('T')[0] : 
+                      newTeamMember.joinedDate ? new Date(newTeamMember.joinedDate).toISOString().split('T')[0] : ''}
                     onChange={(e) => handleDateChange('joinedDate', e.target.value)}
                     className="col-span-3"
                     required
                   />
                 </div>
+                <div className="grid grid-cols-4 items-center gap-2">
+                  <Label htmlFor="resume" className="text-right">Resume</Label>
+                  <Input
+                    id="resume"
+                    name="resume"
+                    type="file"
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-2">
+                  <Label htmlFor="avatar" className="text-right">Avatar</Label>
+                  <Input
+                    id="avatar"
+                    name="avatar"
+                    type="file"
+                    accept="image/*"
+                    className="col-span-3"
+                  />
+                </div>
               </div>
               <DialogFooter>
-                <Button type="submit">Add Team Member</Button>
+                <Button type="submit">
+                  {editMode ? 'Update Team Member' : 'Add Team Member'}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -253,14 +319,25 @@ export const TeamSection = ({ teamMembers, onAddTeamMember }: TeamSectionProps) 
             </div>
             
             <div className="mt-4 pt-4 border-t flex justify-between items-center text-sm text-gray-500">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" onClick={() => openEditDialog(member)}>
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                 <span className="ml-1">Edit</span>
               </Button>
-              <Button variant="ghost" size="sm">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                <span className="ml-1">Projects</span>
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  <span className="ml-1">Projects</span>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => onRemoveTeamMember(member.id)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                  <span className="ml-1">Remove</span>
+                </Button>
+              </div>
             </div>
           </div>
         ))}

@@ -35,15 +35,19 @@ interface ProjectsSectionProps {
   clients: Client[];
   teamMembers: TeamMember[];
   onAddProject: (project: Project) => void;
+  onRemoveProject: (projectId: string) => void;
 }
 
 export const ProjectsSection = ({ 
   projects, 
   clients, 
   teamMembers,
-  onAddProject 
+  onAddProject,
+  onRemoveProject
 }: ProjectsSectionProps) => {
   const [open, setOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [activeTab, setActiveTab] = useState<ProjectStatus>('Active');
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -68,35 +72,67 @@ export const ProjectsSection = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setNewProject(prev => ({ ...prev, [name]: value }));
+    if (editMode && currentProject) {
+      setCurrentProject(prev => ({ ...prev, [name]: value } as Project));
+    } else {
+      setNewProject(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSelectChange = (name: keyof Project, value: any) => {
-    setNewProject(prev => ({ ...prev, [name]: value }));
+    if (editMode && currentProject) {
+      setCurrentProject(prev => ({ ...prev, [name]: value } as Project));
+    } else {
+      setNewProject(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleDateChange = (name: string, value: string) => {
-    setNewProject(prev => ({ ...prev, [name]: new Date(value) }));
+    if (editMode && currentProject) {
+      setCurrentProject(prev => ({ ...prev, [name]: new Date(value) } as Project));
+    } else {
+      setNewProject(prev => ({ ...prev, [name]: new Date(value) }));
+    }
   };
 
-  const handleAddProject = (e: React.FormEvent) => {
+  const handleSubmitProject = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Create new project
-    const project = {
-      ...newProject,
-      id: generateId('project'),
-    } as Project;
-    
-    onAddProject(project);
-    
-    // Show success message
-    toast({
-      title: 'Project added successfully',
-      description: `${project.name} has been added to your projects.`,
-    });
+    if (editMode && currentProject) {
+      // Update existing project
+      onAddProject(currentProject);
+      
+      toast({
+        title: 'Project updated successfully',
+        description: `${currentProject.name} has been updated.`,
+      });
+    } else {
+      // Create new project
+      const project = {
+        ...newProject,
+        id: generateId('project'),
+      } as Project;
+      
+      onAddProject(project);
+      
+      // Show success message
+      toast({
+        title: 'Project added successfully',
+        description: `${project.name} has been added to your projects.`,
+      });
+    }
     
     // Reset form and close dialog
+    resetForm();
+  };
+  
+  const openEditDialog = (project: Project) => {
+    setCurrentProject(project);
+    setEditMode(true);
+    setOpen(true);
+  };
+  
+  const resetForm = () => {
     setNewProject({
       name: '',
       clientId: '',
@@ -106,6 +142,8 @@ export const ProjectsSection = ({
       startDate: new Date(),
       endDate: new Date(),
     });
+    setCurrentProject(null);
+    setEditMode(false);
     setOpen(false);
   };
 
@@ -133,6 +171,52 @@ export const ProjectsSection = ({
     }
   };
   
+  const renderProjectCard = (project: Project) => (
+    <div key={project.id} className="dashboard-card">
+      <div className="flex justify-between items-start">
+        <h3 className="font-semibold text-lg">{project.name}</h3>
+        <div className={`${getStatusColor(project.status)} text-xs px-2.5 py-0.5 rounded-full`}>
+          {project.status}
+        </div>
+      </div>
+      <p className="text-sm text-gray-500 mt-1">Client: {getClientName(project.clientId)}</p>
+      <p className="mt-3 text-sm">{project.description}</p>
+      
+      <div className="mt-4 space-y-2 text-sm">
+        <div className="flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 text-gray-400"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+          {project.startDate.toLocaleDateString()} - {project.endDate.toLocaleDateString()}
+        </div>
+        <div className="flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 text-gray-400"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          {getTeamMemberNames(project.teamMemberIds)}
+        </div>
+      </div>
+      
+      <div className="mt-4 pt-4 border-t flex justify-between items-center text-sm">
+        <Button variant="ghost" size="sm" onClick={() => openEditDialog(project)}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          <span className="ml-1">Edit</span>
+        </Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+            <span className="ml-1">Timeline</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+            onClick={() => onRemoveProject(project.id)}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+            <span className="ml-1">Remove</span>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -143,26 +227,29 @@ export const ProjectsSection = ({
         
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button onClick={() => {
+              setEditMode(false);
+              setCurrentProject(null);
+            }}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>
               Add Project
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Add New Project</DialogTitle>
+              <DialogTitle>{editMode ? 'Edit Project' : 'Add New Project'}</DialogTitle>
               <DialogDescription>
-                Enter the project details below.
+                {editMode ? 'Update the project details below.' : 'Enter the project details below.'}
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleAddProject}>
+            <form onSubmit={handleSubmitProject}>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-2">
                   <Label htmlFor="name" className="text-right">Name</Label>
                   <Input
                     id="name"
                     name="name" 
-                    value={newProject.name}
+                    value={editMode && currentProject ? currentProject.name : newProject.name}
                     onChange={handleInputChange}
                     className="col-span-3"
                     required
@@ -173,7 +260,7 @@ export const ProjectsSection = ({
                   <Label htmlFor="clientId" className="text-right">Client</Label>
                   <div className="col-span-3">
                     <Select
-                      value={newProject.clientId}
+                      value={editMode && currentProject ? currentProject.clientId : newProject.clientId}
                       onValueChange={(value) => handleSelectChange('clientId', value)}
                     >
                       <SelectTrigger>
@@ -194,7 +281,7 @@ export const ProjectsSection = ({
                   <Label htmlFor="status" className="text-right">Status</Label>
                   <div className="col-span-3">
                     <Select
-                      value={newProject.status}
+                      value={editMode && currentProject ? currentProject.status : newProject.status}
                       onValueChange={(value: ProjectStatus) => handleSelectChange('status', value)}
                     >
                       <SelectTrigger>
@@ -214,7 +301,7 @@ export const ProjectsSection = ({
                   <Textarea
                     id="description"
                     name="description"
-                    value={newProject.description}
+                    value={editMode && currentProject ? currentProject.description : newProject.description}
                     onChange={handleInputChange}
                     className="col-span-3"
                     rows={3}
@@ -228,7 +315,8 @@ export const ProjectsSection = ({
                     id="startDate"
                     name="startDate"
                     type="date"
-                    value={newProject.startDate ? new Date(newProject.startDate).toISOString().split('T')[0] : ''}
+                    value={editMode && currentProject ? new Date(currentProject.startDate).toISOString().split('T')[0] : 
+                      newProject.startDate ? new Date(newProject.startDate).toISOString().split('T')[0] : ''}
                     onChange={(e) => handleDateChange('startDate', e.target.value)}
                     className="col-span-3"
                     required
@@ -241,7 +329,8 @@ export const ProjectsSection = ({
                     id="endDate"
                     name="endDate"
                     type="date"
-                    value={newProject.endDate ? new Date(newProject.endDate).toISOString().split('T')[0] : ''}
+                    value={editMode && currentProject ? new Date(currentProject.endDate).toISOString().split('T')[0] : 
+                      newProject.endDate ? new Date(newProject.endDate).toISOString().split('T')[0] : ''}
                     onChange={(e) => handleDateChange('endDate', e.target.value)}
                     className="col-span-3"
                     required
@@ -253,7 +342,8 @@ export const ProjectsSection = ({
                   <Label htmlFor="teamMember" className="text-right">Team Member</Label>
                   <div className="col-span-3">
                     <Select
-                      value={newProject.teamMemberIds?.[0] || ''}
+                      value={editMode && currentProject && currentProject.teamMemberIds.length > 0 ? currentProject.teamMemberIds[0] : 
+                        newProject.teamMemberIds?.[0] || ''}
                       onValueChange={(value) => handleSelectChange('teamMemberIds', [value])}
                     >
                       <SelectTrigger>
@@ -269,9 +359,22 @@ export const ProjectsSection = ({
                     </Select>
                   </div>
                 </div>
+                
+                <div className="grid grid-cols-4 items-center gap-2">
+                  <Label htmlFor="documents" className="text-right">Documents</Label>
+                  <Input
+                    id="documents"
+                    name="documents"
+                    type="file"
+                    multiple
+                    className="col-span-3"
+                  />
+                </div>
               </div>
               <DialogFooter>
-                <Button type="submit">Add Project</Button>
+                <Button type="submit">
+                  {editMode ? 'Update Project' : 'Add Project'}
+                </Button>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -298,40 +401,7 @@ export const ProjectsSection = ({
         
         <TabsContent value="Active" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredProjects.map((project) => (
-              <div key={project.id} className="dashboard-card">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-semibold text-lg">{project.name}</h3>
-                  <div className={`${getStatusColor(project.status)} text-xs px-2.5 py-0.5 rounded-full`}>
-                    {project.status}
-                  </div>
-                </div>
-                <p className="text-sm text-gray-500 mt-1">Client: {getClientName(project.clientId)}</p>
-                <p className="mt-3 text-sm">{project.description}</p>
-                
-                <div className="mt-4 space-y-2 text-sm">
-                  <div className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 text-gray-400"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                    {project.startDate.toLocaleDateString()} - {project.endDate.toLocaleDateString()}
-                  </div>
-                  <div className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 text-gray-400"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    {getTeamMemberNames(project.teamMemberIds)}
-                  </div>
-                </div>
-                
-                <div className="mt-4 pt-4 border-t flex justify-between items-center text-sm">
-                  <Button variant="ghost" size="sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                    <span className="ml-1">Edit</span>
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                    <span className="ml-1">Timeline</span>
-                  </Button>
-                </div>
-              </div>
-            ))}
+            {filteredProjects.map((project) => renderProjectCard(project))}
             
             {filteredProjects.length === 0 && (
               <div className="col-span-3 py-8 text-center">
@@ -343,40 +413,7 @@ export const ProjectsSection = ({
         
         <TabsContent value="Working" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredProjects.map((project) => (
-              <div key={project.id} className="dashboard-card">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-semibold text-lg">{project.name}</h3>
-                  <div className={`${getStatusColor(project.status)} text-xs px-2.5 py-0.5 rounded-full`}>
-                    {project.status}
-                  </div>
-                </div>
-                <p className="text-sm text-gray-500 mt-1">Client: {getClientName(project.clientId)}</p>
-                <p className="mt-3 text-sm">{project.description}</p>
-                
-                <div className="mt-4 space-y-2 text-sm">
-                  <div className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 text-gray-400"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                    {project.startDate.toLocaleDateString()} - {project.endDate.toLocaleDateString()}
-                  </div>
-                  <div className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 text-gray-400"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    {getTeamMemberNames(project.teamMemberIds)}
-                  </div>
-                </div>
-                
-                <div className="mt-4 pt-4 border-t flex justify-between items-center text-sm">
-                  <Button variant="ghost" size="sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                    <span className="ml-1">Edit</span>
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                    <span className="ml-1">Timeline</span>
-                  </Button>
-                </div>
-              </div>
-            ))}
+            {filteredProjects.map((project) => renderProjectCard(project))}
             
             {filteredProjects.length === 0 && (
               <div className="col-span-3 py-8 text-center">
@@ -388,40 +425,7 @@ export const ProjectsSection = ({
         
         <TabsContent value="Closed" className="mt-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredProjects.map((project) => (
-              <div key={project.id} className="dashboard-card">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-semibold text-lg">{project.name}</h3>
-                  <div className={`${getStatusColor(project.status)} text-xs px-2.5 py-0.5 rounded-full`}>
-                    {project.status}
-                  </div>
-                </div>
-                <p className="text-sm text-gray-500 mt-1">Client: {getClientName(project.clientId)}</p>
-                <p className="mt-3 text-sm">{project.description}</p>
-                
-                <div className="mt-4 space-y-2 text-sm">
-                  <div className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 text-gray-400"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                    {project.startDate.toLocaleDateString()} - {project.endDate.toLocaleDateString()}
-                  </div>
-                  <div className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2 text-gray-400"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    {getTeamMemberNames(project.teamMemberIds)}
-                  </div>
-                </div>
-                
-                <div className="mt-4 pt-4 border-t flex justify-between items-center text-sm">
-                  <Button variant="ghost" size="sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                    <span className="ml-1">Edit</span>
-                  </Button>
-                  <Button variant="ghost" size="sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                    <span className="ml-1">Timeline</span>
-                  </Button>
-                </div>
-              </div>
-            ))}
+            {filteredProjects.map((project) => renderProjectCard(project))}
             
             {filteredProjects.length === 0 && (
               <div className="col-span-3 py-8 text-center">

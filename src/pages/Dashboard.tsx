@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +13,7 @@ import InternsSection from '@/components/InternsSection';
 import CalendarView from '@/components/CalendarView';
 import ContractsSection from '@/components/ContractsSection';
 import { SearchBar } from '@/components/SearchBar';
+import { Button } from '@/components/ui/button';
 
 // Data and types
 import { 
@@ -58,7 +58,6 @@ const Dashboard = () => {
   const { toast } = useToast();
   
   useEffect(() => {
-    // Check if user is logged in
     const user = sessionStorage.getItem('user');
     if (!user) {
       navigate('/');
@@ -92,34 +91,29 @@ const Dashboard = () => {
     setShowSearchResults(true);
     const lowerTerm = term.toLowerCase();
     
-    // Search clients
     const filteredClients = clients.filter(client => 
       client.name.toLowerCase().includes(lowerTerm) || 
       client.company.toLowerCase().includes(lowerTerm) ||
       client.email.toLowerCase().includes(lowerTerm)
     );
     
-    // Search projects
     const filteredProjects = projects.filter(project => 
       project.name.toLowerCase().includes(lowerTerm) || 
       project.description.toLowerCase().includes(lowerTerm)
     );
     
-    // Search team members
     const filteredTeamMembers = teamMembers.filter(member => 
       member.name.toLowerCase().includes(lowerTerm) || 
       member.position.toLowerCase().includes(lowerTerm) ||
       member.department.toLowerCase().includes(lowerTerm)
     );
     
-    // Search interns
     const filteredInterns = interns.filter(intern => 
       intern.name.toLowerCase().includes(lowerTerm) || 
       intern.university.toLowerCase().includes(lowerTerm) ||
       intern.department.toLowerCase().includes(lowerTerm)
     );
     
-    // Search contracts
     const filteredContracts = contracts.filter(contract => 
       contract.title.toLowerCase().includes(lowerTerm) || 
       contract.description.toLowerCase().includes(lowerTerm)
@@ -133,7 +127,6 @@ const Dashboard = () => {
       contracts: filteredContracts,
     });
     
-    // Auto-switch tab only if the current tab has no results
     if (filteredClients.length > 0 && tab !== 'clients') {
       setActiveTab('clients');
     } else if (filteredProjects.length > 0 && tab !== 'projects') {
@@ -147,18 +140,14 @@ const Dashboard = () => {
     }
   };
   
-  // Functions to update the data
   const handleAddClient = (client: Client) => {
     setClients(prev => {
-      // Check if client already exists (update case)
       const index = prev.findIndex(c => c.id === client.id);
       if (index !== -1) {
-        // Update existing client
         const updatedClients = [...prev];
         updatedClients[index] = client;
         return updatedClients;
       } else {
-        // Add new client
         return [client, ...prev];
       }
     });
@@ -174,15 +163,12 @@ const Dashboard = () => {
   
   const handleAddProject = (project: Project) => {
     setProjects(prev => {
-      // Check if project already exists (update case)
       const index = prev.findIndex(p => p.id === project.id);
       if (index !== -1) {
-        // Update existing project
         const updatedProjects = [...prev];
         updatedProjects[index] = project;
         return updatedProjects;
       } else {
-        // Add new project
         return [project, ...prev];
       }
     });
@@ -198,15 +184,12 @@ const Dashboard = () => {
   
   const handleAddTeamMember = (teamMember: TeamMember) => {
     setTeamMembers(prev => {
-      // Check if team member already exists (update case)
       const index = prev.findIndex(t => t.id === teamMember.id);
       if (index !== -1) {
-        // Update existing team member
         const updatedTeam = [...prev];
         updatedTeam[index] = teamMember;
         return updatedTeam;
       } else {
-        // Add new team member
         return [teamMember, ...prev];
       }
     });
@@ -214,15 +197,12 @@ const Dashboard = () => {
   
   const handleAddIntern = (intern: Intern) => {
     setInterns(prev => {
-      // Check if intern already exists (update case)
       const index = prev.findIndex(i => i.id === intern.id);
       if (index !== -1) {
-        // Update existing intern
         const updatedInterns = [...prev];
         updatedInterns[index] = intern;
         return updatedInterns;
       } else {
-        // Add new intern
         return [intern, ...prev];
       }
     });
@@ -230,21 +210,41 @@ const Dashboard = () => {
   
   const handleAddContract = (contract: Contract) => {
     setContracts(prev => {
-      // Check if contract already exists (update case)
       const index = prev.findIndex(c => c.id === contract.id);
       if (index !== -1) {
-        // Update existing contract
         const updatedContracts = [...prev];
         updatedContracts[index] = contract;
         return updatedContracts;
       } else {
-        // Add new contract
         return [contract, ...prev];
       }
     });
   };
   
-  // Render search results component
+  const handleRemoveTeamMember = (teamMemberId: string) => {
+    setTeamMembers(prev => prev.filter(member => member.id !== teamMemberId));
+    toast({
+      title: 'Team member removed',
+      description: 'The team member has been removed from your list',
+    });
+  };
+  
+  const handleRemoveIntern = (internId: string) => {
+    setInterns(prev => prev.filter(intern => intern.id !== internId));
+    toast({
+      title: 'Intern removed',
+      description: 'The intern has been removed from your list',
+    });
+  };
+  
+  const handleRemoveContract = (contractId: string) => {
+    setContracts(prev => prev.filter(contract => contract.id !== contractId));
+    toast({
+      title: 'Contract removed',
+      description: 'The contract has been removed from your list',
+    });
+  };
+  
   const renderSearchResults = () => {
     if (!showSearchResults || !searchTerm) return null;
     
@@ -292,18 +292,17 @@ const Dashboard = () => {
                 ))}
               </div>
               {searchResults.clients.length > 4 && (
-                <button 
-                  className="text-sm text-primary mt-1"
+                <Button 
+                  variant="link" 
+                  size="sm"
                   onClick={() => setActiveTab('clients')}
                 >
                   View all {searchResults.clients.length} clients
-                </button>
+                </Button>
               )}
             </div>
           )}
           
-          {/* Similar sections for projects, team members, interns, and contracts */}
-          {/* Projects */}
           {searchResults.projects.length > 0 && (
             <div>
               <h4 className="text-sm font-medium text-gray-500 mb-2">Projects</h4>
@@ -316,25 +315,91 @@ const Dashboard = () => {
                 ))}
               </div>
               {searchResults.projects.length > 4 && (
-                <button 
-                  className="text-sm text-primary mt-1"
+                <Button 
+                  variant="link" 
+                  size="sm"
                   onClick={() => setActiveTab('projects')}
                 >
                   View all {searchResults.projects.length} projects
-                </button>
+                </Button>
               )}
             </div>
           )}
           
-          {/* Add similar blocks for team, interns, and contracts */}
+          {searchResults.teamMembers.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-2">Team Members</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {searchResults.teamMembers.slice(0, 4).map(member => (
+                  <div key={member.id} className="p-3 border rounded-md hover:bg-gray-50">
+                    <div className="font-medium">{member.name}</div>
+                    <div className="text-sm text-gray-500">{member.position}</div>
+                  </div>
+                ))}
+              </div>
+              {searchResults.teamMembers.length > 4 && (
+                <Button 
+                  variant="link" 
+                  size="sm"
+                  onClick={() => setActiveTab('team')}
+                >
+                  View all {searchResults.teamMembers.length} team members
+                </Button>
+              )}
+            </div>
+          )}
+          
+          {searchResults.interns.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-2">Interns</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {searchResults.interns.slice(0, 4).map(intern => (
+                  <div key={intern.id} className="p-3 border rounded-md hover:bg-gray-50">
+                    <div className="font-medium">{intern.name}</div>
+                    <div className="text-sm text-gray-500">{intern.university}</div>
+                  </div>
+                ))}
+              </div>
+              {searchResults.interns.length > 4 && (
+                <Button 
+                  variant="link" 
+                  size="sm"
+                  onClick={() => setActiveTab('interns')}
+                >
+                  View all {searchResults.interns.length} interns
+                </Button>
+              )}
+            </div>
+          )}
+          
+          {searchResults.contracts.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 mb-2">Contracts</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {searchResults.contracts.slice(0, 4).map(contract => (
+                  <div key={contract.id} className="p-3 border rounded-md hover:bg-gray-50">
+                    <div className="font-medium">{contract.title}</div>
+                    <div className="text-sm text-gray-500">{contract.description.slice(0, 50)}...</div>
+                  </div>
+                ))}
+              </div>
+              {searchResults.contracts.length > 4 && (
+                <Button 
+                  variant="link" 
+                  size="sm"
+                  onClick={() => setActiveTab('contracts')}
+                >
+                  View all {searchResults.contracts.length} contracts
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
   };
   
   const renderTabContent = () => {
-    // If we're showing search results, render the component
-    
     switch (tab) {
       case 'overview':
         return (
@@ -465,6 +530,7 @@ const Dashboard = () => {
             <TeamSection 
               teamMembers={searchTerm && showSearchResults ? searchResults.teamMembers : teamMembers}
               onAddTeamMember={handleAddTeamMember}
+              onRemoveTeamMember={handleRemoveTeamMember}
             />
           </>
         );
@@ -476,6 +542,7 @@ const Dashboard = () => {
             <InternsSection 
               interns={searchTerm && showSearchResults ? searchResults.interns : interns}
               onAddIntern={handleAddIntern}
+              onRemoveIntern={handleRemoveIntern}
             />
           </>
         );
@@ -500,6 +567,7 @@ const Dashboard = () => {
               clients={clients}
               projects={projects}
               onAddContract={handleAddContract}
+              onRemoveContract={handleRemoveContract}
             />
           </>
         );
